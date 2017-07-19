@@ -1,5 +1,6 @@
 
 def virial_radius(ra,dec,redshift):
+# Estimate Virial Radius using relations from Ramella+89
     import numpy as np
     h0 = 73.
     zref   = np.median(redshift)
@@ -16,8 +17,8 @@ def virial_radius(ra,dec,redshift):
     return rh,rherr
 
 
-# Calculate VIRIAL MASS based on Ramella et al. (1989)
 def virial_mass(sigv2,sigv_err,rh,rherr):
+# Estimate Virial Mass using relations from Ramella+89
     import numpy as np
     mpc2m    = 206265.*1.e6*1.5e11 # Conversion factor from Mpc to metres
     mh       = 6.*sigv2*1.e6*rh*mpc2m/6.67e-11/2.e30
