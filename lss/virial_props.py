@@ -6,9 +6,10 @@ def virial_radius(ra,dec,redshift):
     zreferr  = np.std(redshift)
     thsum  = 0.
     nmemb  = len(ra)
+    rafact = np.cos(np.mean(dec)/180.*np.pi)
     for i in np.arange(nmemb-2):
         for j in np.arange(i+1,nmemb):
-            thsum += 1./((((ra[i] - ra[j]))**2+(dec[i] - dec[j])**2)**0.5/180.*np.pi)
+            thsum += 1./((((ra[i] - ra[j])*rafact)**2+(dec[i] - dec[j])**2)**0.5/180.*np.pi)
     rh       = np.pi*3.e5*zref/h0*np.sin(0.5*(nmemb*(nmemb-1)/2./thsum))
     rherr    = rh*((zreferr/zref)**2.+2./nmemb)**0.5
     print 'Virial radius = {0}+-{1}'.format(rh,rherr)
