@@ -45,8 +45,10 @@ def write_pyigmascii(pyigmfile,wave,fnorm,error,cont):
 
 def dispelem(esofile):
     hdulist   = fits.open(esofile)
-    return hdulist[0].header['DISPELEM']
-
+    if hdulist[0].header['PRODCATG'] == 'SCIENCE.SPECTRUM':
+        return hdulist[0].header['DISPELEM']
+    else:
+        return 0
 
 parser = OptionParser()
 parser.add_option('-q','--qso',dest='qsoname',
@@ -60,11 +62,14 @@ parser.add_option('-o','--outdir',dest='outdir',
                   default='/home/rich/Dropbox/MUSELLSLP/data/qsospectra/')
 
 parser.add_option('-l','--llim',dest='llim',
-                  help='Wavelength limit for output spectrum',type='string',
+                  help='Wavelength limit for output spectrum',type='float',
                   default=0)
 parser.add_option('-u','--ulim',dest='ulim',
-                  help='Wavelength limit for output spectrum',type='string',
+                  help='Wavelength limit for output spectrum',type='float',
                   default=1.e8)
+parser.add_option('-s','--suffix',dest='suffix',
+                  help='Wavelength limit for output spectrum',type='string',
+                  default='')
 
 
 try:
@@ -89,7 +94,7 @@ for specfile in specfiles:
         armfiles[1] = specfile
     elif dispelem(specfile) == 'NIR':
         armfiles[2] = specfile
-
+print armfiles
 wl = []
 fl = []
 er = []
@@ -100,6 +105,15 @@ for i,specfile in enumerate(armfiles):
     ax[i].plot(wave,flux)
     ax[i].plot(wave,err_flux)
     ax[i].plot(wave,continuum)
+    if i > 0:
+        if wl[-1] > wave[0]:
+            while wl[-1] > wave[0]:
+                print wl[-1],wave[0]
+                wl = wl[:-2]
+                fl = fl[:-2]
+                er = er[:-2]
+                ct = ct[:-2]
+                print len(wl),len(fl),len(er),len(ct)
     wl = np.append(wl,wave)
     fl = np.append(fl,flux)
     er = np.append(er,err_flux)
@@ -107,6 +121,10 @@ for i,specfile in enumerate(armfiles):
 
 print options.outdir,options.qsoname,np.float(options.llim),np.float(options.ulim)
 sel = np.where((wl>=np.float(options.llim)) & (wl < np.float(options.ulim)))[0]
-print sel
-write_pyigmascii('{0}/XSHOOTER/{1}.dat'.format(options.outdir,options.qsoname),wl[sel],fl[sel]*ct[sel],er[sel],ct[sel])
-plt.pause(5.6)
+print sel[-1],len(wl)
+print len(sel)
+print len(wl),len(fl),len(er),len(ct)
+if os.path.isfile('{0}/XSHOOTER/{1}/'.format(options.outdir,options.qsoname)) == False:
+    os.mkdir('{0}/XSHOOTER/{1}/'.format(options.outdir,options.qsoname))
+write_pyigmascii('{0}/XSHOOTER/{1}/{1}{2}.dat'.format(options.outdir,options.qsoname,options.suffix),wl[sel],fl[sel]*ct[sel],er[sel],ct[sel])
+plt.pause(2.4)
