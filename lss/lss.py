@@ -76,6 +76,35 @@ def paircount(xyz1,xyz2,bins=None):
         print 'min(pi)',np.min(piarr)
     return pairs,sigpairs
 
+def paircount2d(xyz1,xyz2,bins=None):
+    import numpy as np
+    x1,y1,z1 = xyz1[0,:],xyz1[1,:],xyz1[2,:]
+    x2,y2,z2 = xyz2[0,:],xyz2[1,:],xyz2[2,:]
+    n1    = len(x1)
+    n2    = len(x2)
+    # print n1,n2
+    s2    = np.zeros(n2)
+    nbin = len(bins)
+    pairs = np.zeros(nbin,dtype=np.uint32)
+    sigarr = []
+    piarr  = []
+    pairs,sigpairs = 0.,0.
+    s2 = (x2**2+y2**2+z2**2)**0.5
+    s1 = (x1**2+y1**2+z1**2)**0.5
+    for i in xrange(n1):
+        ang    = (x1[i]*x2+y1[i]*y2+z1[i]*z2)/(s1[i]*s2)
+        sel    = np.where(ang <1)[0]
+        theta  = np.arccos(ang[sel])
+        pi     = abs(s1[i]-s2[sel])
+        sigma  = 0.5*theta*(s1[i]+s2[sel])
+        sigarr,piarr = np.append(sigarr,sigma),np.append(piarr,pi)
+        pairs  += np.histogram2d(sigma,pi,bins=bins)[0]
+    if len(sigarr) > 0:
+        print 'min(sigma)',np.min(sigarr)
+    if len(piarr) > 0:
+        print 'min(pi)',np.min(piarr)
+    return pairs
+
 def landszal(coords1,coords2,rand1,rand2,type='radecz',bins=None):
     import numpy as np
     if type == 'radecz':

@@ -112,7 +112,7 @@ flaglim = 256
 print 'max flag = ',np.max(objects['flag'])
 
 
-for i, obj in enumerate(objects[:32]):
+for i, obj in enumerate(objects):
     sid = obj['number']
     type.append('P')
     if (obj['flag'] < flaglim):
