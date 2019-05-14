@@ -45,6 +45,46 @@ def radecred_to_xyz(coords):
     print np.shape(xyz)
     return xyz
 
+def apair_trad(xyz,bins=None):
+    import numpy as np
+    x ,y ,z  = xyz[0,:],xyz[1,:],xyz[2,:]
+    s        = (x**2 + y**2 + z**2)**0.5
+    nd       = len(x)
+    if bins.any() == None:
+        bins = 10**np.arange(-1.2,1.6,0.2)
+    dd = np.zeros(len(bins-1))
+    for i in np.arange(nd):
+        ang    = (x[i]*x[i+1:] + y[i]*y[i+1:] + z[i]*z[i+1:])/(s[i]*s[i+1:])
+        theta  = np.arccos(ang)
+        pi     = abs(s[i] - s[i+1:])
+        sigma  = 0.5 * theta * (s[i] + s[i+1:])
+        hdist  = (sigma**2 + pi**2)**0.5
+        for j in np.arange(len(bins)-1):
+            sel = np.where((hdist >= bins[j]) & (hdist < bins[j+1]))[0]
+            dd[j] += len(sel)
+    return bins,dd
+
+def cpair_trad(xyz_a,xyz_b,bins=None):
+    import numpy as np
+    x_a ,y_a ,z_a  = xyz_a[0,:],xyz_a[1,:],xyz_a[2,:]
+    s_a        = (x_a**2 + y_a**2 + z_a**2)**0.5
+    nd         = len(s_a)
+    x_b ,y_b ,z_b  = xyz_b[0,:],xyz_b[1,:],xyz_b[2,:]
+    s_b        = (x_b**2 + y_b**2 + z_b**2)**0.5
+    if bins.any() == None:
+        bins = 10**np.arange(-1.2,1.6,0.2)
+    dr = np.zeros(len(bins-1))
+    for i in np.arange(nd):
+        ang    = (x_a[i]*x_b + y_a[i]*y_b + z_a[i]*z_b)/(s_a[i]*s_b)
+        theta  = np.arccos(ang)
+        pi     = abs(s_a[i] - s_b)
+        sigma  = 0.5 * theta * (s_a[i] + s_b)
+        hdist  = (sigma**2 + pi**2)**0.5
+        for j in np.arange(len(bins)-1):
+            sel = np.where((hdist >= bins[j]) & (hdist < bins[j+1]))[0]
+            dr[j] += len(sel)
+    return bins,dr
+
 def paircount(xyz1,xyz2,bins=None):
     import numpy as np
     x1,y1,z1 = xyz1[0,:],xyz1[1,:],xyz1[2,:]
@@ -69,12 +109,11 @@ def paircount(xyz1,xyz2,bins=None):
         sigarr,piarr = np.append(sigarr,sigma),np.append(piarr,pi)
         hdist  = (sigma**2+pi**2)**0.5
         pairs  += np.histogram(hdist,bins=bins)[0]
-        sigpairs += np.histogram(sigma,bins=bins)[0]
     if len(sigarr) > 0:
         print 'min(sigma)',np.min(sigarr)
     if len(piarr) > 0:
         print 'min(pi)',np.min(piarr)
-    return pairs,sigpairs
+    return pairs
 
 def paircount2d(xyz1,xyz2,bins=None):
     import numpy as np

@@ -116,7 +116,7 @@ for i, obj in enumerate(objects):
     sid = obj['number']
     type.append('P')
     if (obj['flag'] < flaglim):
-        print 'ID:',sid,obj['x'],obj['y'],obj['ra'],obj['dec']
+        # print 'ID:',sid,obj['x'],obj['y'],obj['ra'],obj['dec']
         tmpmask=np.zeros(srcmask.shape, dtype=np.bool)
         sel = np.where(srcmask.ravel(srcmask.shape[1]*srcmask.shape[2]) != sid)[0]
         # print len(sel),srcmask.shape[1]*srcmask.shape[2]
@@ -162,7 +162,7 @@ for i, obj in enumerate(objects):
             intensity[i,:] = spec_flx
             variance[i,:]  = spec_err**2
         print '{0:5.0f} {1:7.2f} {2:7.2f} {3:4.0f} {4:7.4f} {5:7.4f} {6:7.4f}'.format(sid,obj['x'], obj['y'],obj['flag'],np.nanmedian(intensity[i,:]),np.nanmedian(variance[i,:]),np.nanmax(variance[i,:]))
-        print("done {} !".format(sid))
+        print("done {0} of {1}!".format(sid,len(objects)))
 
 # print np.shape(sky)
 fsel = np.where(objects['flag']<flaglim)[0]
