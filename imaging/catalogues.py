@@ -10,7 +10,7 @@ def make_lephare_cat(filename,id,mag,magerr,context=None,zspec=None,string=None)
                 mag[i,j] = -99.
                 magerr[i,j] = -99.
             lepharecat.write('{0:8.4f} {1:8.4f} '.format(mag[i,j],magerr[i,j]))
-        if context != None:
+        if np.any([context]) != None:
             sel = np.where(np.abs(mag[:,j]-20)<10)[0]
             lepharecat.write('{0:4.0f} {1:8.5f} '.format(context[j],zspec[j]))
             # if zspec[j] > -1:

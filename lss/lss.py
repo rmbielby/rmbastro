@@ -64,7 +64,7 @@ def apair_trad(xyz,bins=None):
             dd[j] += len(sel)
     return bins,dd
 
-def cpair_trad(xyz_a,xyz_b,bins=None):
+def cpair_trad(xyz_a,xyz_b,bins=None,weight_a=None,weight_b=None):
     import numpy as np
     x_a ,y_a ,z_a  = xyz_a[0,:],xyz_a[1,:],xyz_a[2,:]
     s_a        = (x_a**2 + y_a**2 + z_a**2)**0.5
@@ -74,15 +74,155 @@ def cpair_trad(xyz_a,xyz_b,bins=None):
     if bins.any() == None:
         bins = 10**np.arange(-1.2,1.6,0.2)
     dr = np.zeros(len(bins-1))
+    if (np.array([weight_a]).any() == None) & (np.array([weight_b]).any() == None):
+        for i in np.arange(nd):
+            ang    = (x_a[i]*x_b + y_a[i]*y_b + z_a[i]*z_b)/(s_a[i]*s_b)
+            theta  = np.arccos(ang)
+            pi     = abs(s_a[i] - s_b)
+            sigma  = 0.5 * theta * (s_a[i] + s_b)
+            hdist  = (sigma**2 + pi**2)**0.5
+            for j in np.arange(len(bins)-1):
+                sel = np.where((hdist >= bins[j]) & (hdist < bins[j+1]))[0]
+                dr[j] += len(sel)
+    else:
+        if (np.array([weight_a]).any() == None):
+            weight_a = np.zeros(len(x_a))+1.
+        elif (weight_b.any() == None):
+            weight_b = np.zeros(len(x_b))+1.
+        for i in np.arange(nd):
+            ang    = (x_a[i]*x_b + y_a[i]*y_b + z_a[i]*z_b)/(s_a[i]*s_b)
+            theta  = np.arccos(ang)
+            pi     = abs(s_a[i] - s_b)
+            sigma  = 0.5 * theta * (s_a[i] + s_b)
+            hdist  = (sigma**2 + pi**2)**0.5
+            for j in np.arange(len(bins)-1):
+                sel = np.where((hdist >= bins[j]) & (hdist < bins[j+1]))[0]
+                dr[j] += weight_a[i]*np.nansum(weight_b[sel])
+    return bins,dr
+
+def cpair_shift(xyz_a,xyz_b,bins=None,weight_b=None,vwin=None,sigwin=0.8):
+    # Run a projected pair count within a velocity window given by vwin
+    # vwin is in rest frame.
+    import numpy as np
+    x_a ,y_a ,z_a  = xyz_a[0,:],xyz_a[1,:],xyz_a[2,:]
+    s_a        = (x_a**2 + y_a**2 + z_a**2)**0.5
+    nd         = len(s_a)
+    x_b ,y_b ,z_b  = xyz_b[0,:],xyz_b[1,:],xyz_b[2,:]
+    s_b        = (x_b**2 + y_b**2 + z_b**2)**0.5
+    if bins.any() == None:
+        bins = 10**np.arange(-1.2,1.6,0.2)
+    dr = np.zeros(len(bins-1))
+    pishift = []
+    nw = 0.
+    for i in np.arange(nd):
+        ang    = (x_a[i]*x_b + y_a[i]*y_b + z_a[i]*z_b)/(s_a[i]*s_b)
+        theta  = np.arccos(ang)
+        sigma  = 0.5 * theta * (s_a[i] + s_b)
+        nearby = np.where((sigma<160.))[0]
+        pi     = s_a[i] - s_b[nearby]
+        if (np.min(pi) < 10.**5):
+            sigma,weight = sigma[nearby],weight_b[nearby]
+            if vwin != None:
+                pwin = vwin/60.33182503 # convert to comoving distance assuming Planck15+z=1
+                sel    = np.where((sigma < sigwin) & (np.abs(pi) < pwin))[0]
+                if len(sel) > 1:
+                    if (np.nanmin(pi) < -0.24*pwin) & (np.nanmax(pi) > 0.24*pwin):
+                        minim = np.argmin(weight[sel])
+                        # for si in sel:
+                        #     print sigma[si],pi[si],weight[si]
+                        # print 'Shifting galaxy by: {0:7.2f} to minim of {1:5.2f}'.format(pi[sel[minim]],weight[sel[minim]])
+                        pishift.append(pi[sel[minim]])
+                        pi -= pi[sel[minim]]
+            hdist  = (sigma**2 + pi**2)**0.5
+            for j in np.arange(len(bins)-1):
+                for j in np.arange(len(bins)-1):
+                    sel = np.where((hdist >= bins[j]) & (hdist < bins[j+1]))[0]
+                    dr[j] += np.nansum(weight[sel])
+                    nw    += len(sel)
+    tbar = np.nansum(dr)/nw
+    return bins,dr,tbar,np.array(pishift)
+
+
+def cpair_proj(xyz_a,xyz_b,bins=None,weight_a=None,weight_b=None,vwin=400.):
+    # Run a projected pair count within a velocity window given by vwin
+    # vwin is in rest frame.
+    import numpy as np
+    pwin = vwin/60.33182503 # convert to comoving distance assuming Planck15+z=1
+    x_a ,y_a ,z_a  = xyz_a[0,:],xyz_a[1,:],xyz_a[2,:]
+    s_a        = (x_a**2 + y_a**2 + z_a**2)**0.5
+    nd         = len(s_a)
+    x_b ,y_b ,z_b  = xyz_b[0,:],xyz_b[1,:],xyz_b[2,:]
+    s_b        = (x_b**2 + y_b**2 + z_b**2)**0.5
+    if bins.any() == None:
+        bins = 10**np.arange(-1.2,1.6,0.2)
+    dr = np.zeros(len(bins-1))
+    print np.array([weight_a])
+    if (np.array([weight_a]).any() == None) & (weight_b.any() == None):
+        for i in np.arange(nd):
+            ang    = (x_a[i]*x_b + y_a[i]*y_b + z_a[i]*z_b)/(s_a[i]*s_b)
+            theta  = np.arccos(ang)
+            pi     = abs(s_a[i] - s_b)
+            sigma  = 0.5 * theta * (s_a[i] + s_b)
+            for j in np.arange(len(bins)-1):
+                sel = np.where((sigma >= bins[j]) & (sigma < bins[j+1]) & (pi<=pwin))[0]
+                dr[j] += len(sel)
+    else:
+        if (np.array([weight_a]).any() == None):
+            weight_a = np.zeros(len(x_a))+1.
+        elif (weight_b.any() == None):
+            weight_b = np.zeros(len(x_b))+1.
+        for i in np.arange(nd):
+            ang    = (x_a[i]*x_b + y_a[i]*y_b + z_a[i]*z_b)/(s_a[i]*s_b)
+            theta  = np.arccos(ang)
+            pi     = abs(s_a[i] - s_b)
+            sigma  = 0.5 * theta * (s_a[i] + s_b)
+            for j in np.arange(len(bins)-1):
+                sel = np.where((sigma >= bins[j]) & (sigma < bins[j+1]) & ((pi<=pwin) | (pi<=bins[j+1])))[0]
+                if len(sel) >= 1:
+                    dr[j] += weight_a[i]*np.nansum(weight_b[sel])
+    return bins,dr
+
+
+def apair_twod(xyz,bins=None):
+    import numpy as np
+    x ,y ,z  = xyz[0,:],xyz[1,:],xyz[2,:]
+    s        = (x**2 + y**2 + z**2)**0.5
+    nd       = len(x)
+    if bins.any() == None:
+        bins = 10**np.arange(-1.2,1.6,0.2)
+    dd = np.zeros((len(bins-1),len(bins-1)))
+    for i in np.arange(nd):
+        ang    = (x[i]*x[i+1:] + y[i]*y[i+1:] + z[i]*z[i+1:])/(s[i]*s[i+1:])
+        theta  = np.arccos(ang)
+        pi     = abs(s[i] - s[i+1:])
+        sigma  = 0.5 * theta * (s[i] + s[i+1:])
+        for j in np.arange(len(bins)-1):
+            for k in np.arange(len(bins)-1):
+                sel = np.where((sigma >= bins[j]) & (sigma < bins[j+1]) &
+                    (pi >= bins[k]) & (pi < bins[k+1]))[0]
+                dd[j,k] += len(sel)
+    return bins,dd
+
+def cpair_twod(xyz_a,xyz_b,bins=None):
+    import numpy as np
+    x_a ,y_a ,z_a  = xyz_a[0,:],xyz_a[1,:],xyz_a[2,:]
+    s_a        = (x_a**2 + y_a**2 + z_a**2)**0.5
+    nd         = len(s_a)
+    x_b ,y_b ,z_b  = xyz_b[0,:],xyz_b[1,:],xyz_b[2,:]
+    s_b        = (x_b**2 + y_b**2 + z_b**2)**0.5
+    if bins.any() == None:
+        bins = 10**np.arange(-1.2,1.6,0.2)
+    dr = np.zeros((len(bins-1),len(bins-1)))
     for i in np.arange(nd):
         ang    = (x_a[i]*x_b + y_a[i]*y_b + z_a[i]*z_b)/(s_a[i]*s_b)
         theta  = np.arccos(ang)
         pi     = abs(s_a[i] - s_b)
         sigma  = 0.5 * theta * (s_a[i] + s_b)
-        hdist  = (sigma**2 + pi**2)**0.5
         for j in np.arange(len(bins)-1):
-            sel = np.where((hdist >= bins[j]) & (hdist < bins[j+1]))[0]
-            dr[j] += len(sel)
+            for k in np.arange(len(bins)-1):
+                sel = np.where((sigma >= bins[j]) & (sigma < bins[j+1]) &
+                    (pi >= bins[k]) & (pi < bins[k+1]))[0]
+                dr[j,k] += len(sel)
     return bins,dr
 
 def paircount(xyz1,xyz2,bins=None):
