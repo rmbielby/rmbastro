@@ -53,26 +53,19 @@ parser.add_option('-m','--maskgalacsi',dest='maskgalacsi',
 try:
     options,args = parser.parse_args(sys.argv[1:])
 except:
-    print "Error ... check usage with -h ";
+    print("Error ... check usage with -h ")
     sys.exit(1)
 
 fcube   = options.fcube
-print fcube
 image   = options.image
 path    = '/'.join(image.split('/')[:-1])
-print path
-# outspec = path+'/'
-# if ((os.path.isdir(outspec)) == False): os.mkdir(outspec)
-#find sources
-
-print options.nsig
 
 if options.catalogue == None:
     objects = msc.findsources(image, fcube, check=True, output=path,
         nsig=options.nsig, minarea=5., regmask=None, clean=True,spectra =False)
     id      = np.arange(len(objects))+1 # Integer array - identification number of object
 else:
-    print 'Reading catalogue from ',options.catalogue
+    print('Reading catalogue from ',options.catalogue)
     objects =  np.genfromtxt(options.catalogue,unpack=True,usecols=(0,15,16,17,18,20),names="number,x,y,ra,dec,flag")
     id      = objects['number'] # Integer array - identification number of object
     ra      = objects['ra']
@@ -80,11 +73,11 @@ else:
 
 nobj = len(objects)
 
-print 'Found {0} objects'.format(nobj)
+print('Found {0} objects'.format(nobj))
 
 # print objects.dtype.names
 data    = cube_data(fcube)
-
+# data,vardata,wcsc,wavec,regions=utl.readcube(fcube)
 if options.segmentation_map == None:
     srcmask = fits.getdata(path+'/source.fits')
     # print np.shape(srcmask)
@@ -102,14 +95,10 @@ if options.catalogue == None:
 # Initialize flux, variance & sky arrays (sky not mandatory)
 intensity,variance,sky = np.zeros((len(id),naxis3)),np.zeros((len(id),naxis3)),np.zeros((len(id),naxis3))
 
-print data.wcsc.wcs.crval[2]
-print data.wcsc.wcs.cd[2,2]
-print data.wcsc.wcs.crpix[2]
-
 # Fill the flux, variance and sky arrays here.
 type = []
 flaglim = 256
-print 'max flag = ',np.max(objects['flag'])
+print('max flag = ',np.max(objects['flag']))
 
 
 for i, obj in enumerate(objects):
@@ -123,7 +112,7 @@ for i, obj in enumerate(objects):
         # print np.shape(srcmask)
         # print srcmask.ravel(srcmask.shape[0]*srcmask.shape[1])[sel]
         if len(sel) == srcmask.shape[1]*srcmask.shape[2]:
-            print 'Adding object to source mask!!!'
+            print('Adding object to source mask!!!')
             for j in np.arange(11):
                 for k in np.arange(11):
                     radius  = ((j-5)**2+(j-5)**2)**0.5
@@ -133,38 +122,24 @@ for i, obj in enumerate(objects):
         tmpmask[srcmask == sid] = True
         # print 'tmpmask == True',np.where(tmpmask == True)
         # savename = "{}/id{}.fits".format(outspec, i+1)
-        wavec, spec_flx, spec_err, spec_med = utl.cube2spec(fcube, obj['x'], obj['y'], None,
-            shape='mask', mask=tmpmask, tovac=True, twod=False, write='temp.fits')
+        wavec, spec_flx, spec_err, spec_med = utl.cube2spec(fcube, obj['x'], obj['y'], None,shape='mask', mask=tmpmask, tovac=True, twod=False, write='temp.fits')
         # Remove !nans
         # print np.nan,np.median(spec_err),np.nanmedian(spec_err)
         if np.isnan(np.median(spec_err)):
-            print 'Removing np.nan'
+            print('Removing np.nan')
             spec_err[np.isnan(spec_err)] = np.nanmean(spec_err)*1.e6
         if options.maskgalacsi == 'Y':
-            print 'Forcing high variance in wavelength gap (GALACSI)'
+            print('Forcing high variance in wavelength gap (GALACSI)')
             galacsi_cent = (5748.9+6047.8)/2.
             galacsi_wdth = (6047.8-5748.9)/2.
             galacsi_sel = np.where(np.abs(wavec-galacsi_cent)<galacsi_wdth)
             spec_err[galacsi_sel] = np.nanmean(spec_err)*1.e6
-        # print np.nan,np.median(spec_err),np.nanmedian(spec_err)
-        # if np.isnan(np.median(spec_err)):
-        # print np.min(wavec),np.nanmin(wavec),np.max(wavec),np.nanmax(wavec)
-        # print spec_err
-        # f,ax = plt.subplots(1,1,figsize=(12,4))
-        # ax.plot(wavec,spec_flx,label='Flux')
-        # ax.plot(wavec,spec_err,label='Sigma')
-        # # ax.plot(wavec,spec_gle,label='Global sigma')
-        # ax.plot(wavec,wavec*0.,color='k',linestyle=':')
-        # ax.legend()
-        # ax.set_xlim(np.nanmin(wavec),np.nanmax(wavec))
-        # plt.pause(0.5)
         if np.isnan(np.nanmedian(spec_flx))==False:
             intensity[i,:] = spec_flx
             variance[i,:]  = spec_err**2
-        print '{0:5.0f} {1:7.2f} {2:7.2f} {3:4.0f} {4:7.4f} {5:7.4f} {6:7.4f}'.format(sid,obj['x'], obj['y'],obj['flag'],np.nanmedian(intensity[i,:]),np.nanmedian(variance[i,:]),np.nanmax(variance[i,:]))
+        print('{0:5.0f} {1:7.2f} {2:7.2f} {3:4.0f} {4:7.4f} {5:7.4f} {6:7.4f}'.format(sid,obj['x'], obj['y'],obj['flag'],np.nanmedian(intensity[i,:]),np.nanmedian(variance[i,:]),np.nanmax(variance[i,:])))
         print("done {0} of {1}!".format(sid,len(objects)))
 
-# print np.shape(sky)
 fsel = np.where(objects['flag']<flaglim)[0]
 master_var = np.nanmedian(variance[fsel,:],axis=0)
 master_sky = np.nanmedian(sky[fsel,:],axis=0)
@@ -172,12 +147,8 @@ master_sky = np.nanmedian(sky[fsel,:],axis=0)
 skymeds = np.nanmedian(sky,axis=1)
 varmeds = np.median(variance,axis=1)
 
-# print 'sky & var meds:',skymeds,varmeds
-# print np.min(skymeds),np.min(varmeds)
-
 if np.isnan(np.median(varmeds)):
     sel = np.where(np.isnan(varmeds))[0]
-    # print sel
     for line in sel:
         variance[line,:] = master_var
         f,ax = plt.subplots(1,1)
@@ -213,8 +184,6 @@ else:
 # Set-up the fits file
 specmeds = np.nanmean(intensity,axis=1)
 specmax = np.nanmax(intensity,axis=1)
-print np.shape(objects['flag'])
-print np.shape(specmeds)
 badobj = np.where((objects['flag']>=flaglim))[0]
 # print 'flagged:',badobj,objects['flag']
 badobj = np.where((np.isnan(specmeds))| (specmax == 0.))[0]
@@ -226,13 +195,6 @@ for line in badobj:
 
 goodobj = np.where(objects['flag']<flaglim)[0]
 fsel = np.where(objects['flag']<flaglim)[0]
-
-print np.shape(ra)
-print np.shape(dec)
-print np.shape(fsel)
-# print objects['flag'][fsel]
-print np.shape(intensity[fsel,:])
-print np.shape(intensity)
 
 marz_hdu = fits.HDUList()
 marz_hdu.append(fits.ImageHDU(intensity[fsel,:]))

@@ -38,7 +38,7 @@ def make_gazpar_cat(filename,id,mag,magerr,zspec,flag,ra,dec,mask):
     lepharecat.close()
     return
 
-def make_redshift_cat(filename,id,ra,dec,f140mag,frad,sexflag,mag,magerr,photz,grism,specz,bnames=['u','g','r','i','z','F140','F160']):
+def make_redshift_cat(filename,id,ra,dec,f140mag,frad,sexflag,mag,magerr,photz,grism,specz,litz,bnames=['u','g','r','i','z','F140','F160']):
     import numpy as np
     lepharecat = open(filename,'w')
     nobj   = len(id)
@@ -49,6 +49,7 @@ def make_redshift_cat(filename,id,ra,dec,f140mag,frad,sexflag,mag,magerr,photz,g
     lepharecat.write(' {0:10} {1:10} {2:10} {3:4}'.format('Photz','Photz-min','Photz-max','PMod'))
     lepharecat.write(' {0:5} {1:10} {2:4}'.format('Gr-ID','Gr-z','Gr-q'))
     lepharecat.write(' {0:5} {1:10} {2:4}'.format('Sp-ID','Sp-z','Sp-q'))
+    lepharecat.write(' {0:6}'.format('Lit-z'))
     lepharecat.write(' {0:5}'.format('pFLAG'))
     lepharecat.write('\n')
     print np.shape(id),np.shape(photz),np.shape(grism),np.shape(specz)
@@ -59,6 +60,7 @@ def make_redshift_cat(filename,id,ra,dec,f140mag,frad,sexflag,mag,magerr,photz,g
         lepharecat.write(' {0:10.5f} {1:10.5f} {2:10.5f} {3:4.0f}'.format(photz[0,j],photz[1,j],photz[2,j],photz[3,j]))
         lepharecat.write(' {0:5.0f} {1:10.5f} {2:4.0f}'.format(grism[0,j],grism[1,j],grism[2,j]))
         lepharecat.write(' {0:5.0f} {1:10.5f} {2:4.0f}'.format(specz[0,j],specz[1,j],specz[2,j]))
+        lepharecat.write(' {0:6.4f}'.format(litz[j]))
         lepharecat.write(' {0:5.0f}'.format(sexflag[j]))
         lepharecat.write('\n')
     lepharecat.close()
